@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "Bash(mv:*)",
+      "Bash(chmod:*)",
+      "Bash(rm:*)",
+      "Bash(python:*)",
+      "Bash(source:*)",
+      "Bash(pip install:*)",
+      "Bash(lsof:*)",
+      "Bash(ls:*)",
+      "Bash(playwright install:*)",
+      "Bash(curl:*)",
+      "Bash(-F \"data=Test QR Code Content\" )",
+      "Bash(-F \"export_format=png\" )",
+      "Bash(-F \"module_drawer=square\" )",
+      "Bash(-F \"color_mask=solid\" )",
+      "Bash(-o test_web_qr.png )",
+      "Bash(-w \"\\nHTTP Status: %{http_code}\\n\")",
+      "Bash(pkill:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)"
+    ],
+    "deny": []
+  }
+}

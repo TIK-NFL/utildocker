@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Utility Tools - QR Code Generator & URL Shortener</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Utility Tools</h1>
+            <nav>
+                <button id="qr-tab" class="tab-button active" onclick="showTab('qr')">QR Code Generator</button>
+                <button id="url-tab" class="tab-button" onclick="showTab('url')">URL Shortener</button>
+            </nav>
+        </header>
+
+        <main>
+            <!-- QR Code Generator Section -->
+            <section id="qr-section" class="tool-section active">
+                <h2>QR Code Generator</h2>
+                
+                {% if qr_preview %}
+                <div class="qr-preview">
+                    <h3>Generated QR Code</h3>
+                    <div class="qr-preview-container">
+                        {% if qr_preview.format == 'svg' %}
+                        <div class="qr-image-wrapper">
+                            <iframe src="{{ url_for('serve_preview', preview_id=qr_preview.preview_id) }}" 
+                                    class="svg-frame" 
+                                    frameborder="0">
+                            </iframe>
+                        </div>
+                        {% else %}
+                        <img src="{{ url_for('serve_preview', preview_id=qr_preview.preview_id) }}" 
+                             alt="Generated QR Code" 
+                             class="qr-preview-image">
+                        {% endif %}
+                    </div>
+                    <div class="qr-actions">
+                        <a href="{{ url_for('download_qr') }}" class="download-btn">
+                            <span class="icon">⬇</span> Download {{ qr_preview.filename }}
+                        </a>
+                        <button onclick="generateNew()" class="new-btn">Generate New QR Code</button>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <form method="post" action="/generate-qr" enctype="multipart/form-data" class="form-container {% if qr_preview %}collapsed{% endif %}" id="qr-form">
+                    <div class="form-group">
+                        <label for="data">Text or URL:</label>
+                        <input type="text" id="data" name="data" required placeholder="Enter text or URL to encode">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="image">Logo (optional):</label>
+                        <input type="file" id="image" name="image" accept="image/*">
+                    </div>
+                    
+                    <div class="form-group">
+                        <h3>Export Format</h3>
+                        <div class="radio-group">
+                            <label><input type="radio" name="export_format" value="png" checked> PNG</label>
+                            <label><input type="radio" name="export_format" value="svg"> SVG</label>
+                        </div>
+                        <div class="format-info" id="svg-info" style="display: none;">
+                            <small><strong>Note:</strong> SVG format has limited styling support. Module shapes and gradient colors are only available for PNG format.</small>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <h3>Module Style</h3>
+                        <div class="radio-group">
+                            <label><input type="radio" name="module_drawer" value="square" checked> Square</label>
+                            <label><input type="radio" name="module_drawer" value="rounded"> Rounded</label>
+                            <label><input type="radio" name="module_drawer" value="circle"> Circle</label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <h3>Color Style</h3>
+                        <div class="radio-group">
+                            <label><input type="radio" name="color_mask" value="solid" checked> Solid</label>
+                            <label><input type="radio" name="color_mask" value="radial"> Radial Gradient</label>
+                            <label><input type="radio" name="color_mask" value="square"> Square Gradient</label>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="submit-btn">Generate QR Code</button>
+                </form>
+                
+                <div class="examples">
+                    <h3>Style Examples</h3>
+                    <div class="example-grid">
+                        <div class="example-item">
+                            <img src="{{ url_for('static', filename='images/rounded.png') }}" alt="Rounded modules">
+                            <p>Rounded Modules</p>
+                        </div>
+                        <div class="example-item">
+                            <img src="{{ url_for('static', filename='images/circle.png') }}" alt="Circle modules">
+                            <p>Circle Modules</p>
+                        </div>
+                        <div class="example-item">
+                            <img src="{{ url_for('static', filename='images/radial.png') }}" alt="Radial gradient">
+                            <p>Radial Gradient</p>
+                        </div>
+                        <div class="example-item">
+                            <img src="{{ url_for('static', filename='images/square_gradient.png') }}" alt="Square gradient">
+                            <p>Square Gradient</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- URL Shortener Section -->
+            <section id="url-section" class="tool-section">
+                <h2>Confluence URL Shortener</h2>
+                <div class="info-box">
+                    <h3>📚 About Confluence URL Shortener</h3>
+                    <p>This tool is specifically designed for <strong>Atlassian Confluence</strong> URLs. It converts long Confluence page URLs into compact, shareable links using Confluence's built-in tiny link format.</p>
+                    <p><strong>How it works:</strong> The tool extracts the page ID from your Confluence URL and generates a short link in the format: <code>https://your-confluence.com/x/[token]</code></p>
+                    <p><strong>Compatible URL formats:</strong></p>
+                    <ul>
+                        <li><code>https://confluence.com/display/SPACE/Page+Title</code></li>
+                        <li><code>https://confluence.com/pages/viewpage.action?pageId=123456</code></li>
+                        <li><code>https://confluence.com/pages/123456/page-title</code></li>
+                    </ul>
+                </div>
+                
+                <form method="post" action="/shorten-url" class="form-container">
+                    <div class="form-group">
+                        <label for="full_url">Confluence Page URL:</label>
+                        <input type="url" id="full_url" name="full_url" required 
+                               placeholder="https://confluence.example.com/pages/123456789/page-title">
+                        <small>Paste your full Confluence page URL here</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="base_url">Custom Base URL (optional):</label>
+                        <input type="url" id="base_url" name="base_url" 
+                               placeholder="https://myconfluence.com">
+                        <small>Leave empty to auto-detect from the full URL. Use this if you want to generate a short link for a different Confluence instance.</small>
+                    </div>
+                    
+                    <button type="submit" class="submit-btn">Generate Short Link</button>
+                </form>
+                
+                {% if short_url %}
+                <div class="result">
+                    <h3>Shortened URL:</h3>
+                    <div class="url-result">
+                        <input type="text" value="{{ short_url }}" readonly id="short-url-input">
+                        <button onclick="copyToClipboard('short-url-input')" class="copy-btn">Copy</button>
+                    </div>
+                </div>
+                {% endif %}
+            </section>
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
