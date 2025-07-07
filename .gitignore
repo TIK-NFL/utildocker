@@ -140,3 +140,11 @@ Thumbs.db
 
 .claude
 CLAUDE.MD
+
+
+# Alle Dateien mit der Endung .claude ignorieren
+*.claude
+
+# Jede Datei namens claude.md (egal wo im Repo)
+claude.md
+
