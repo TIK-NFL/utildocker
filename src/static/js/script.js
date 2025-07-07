@@ -91,9 +91,13 @@ function updateRadioStyles() {
 
 // Initialize page
 document.addEventListener('DOMContentLoaded', function() {
-    // Show QR tab by default if no QR preview, otherwise show the preview
+    // Show appropriate tab based on what content is available
     const hasQRPreview = document.querySelector('.qr-preview');
-    if (hasQRPreview) {
+    const hasSVGAnalysis = document.querySelector('.svg-analysis-results');
+    
+    if (hasSVGAnalysis) {
+        showTab('svg');
+    } else if (hasQRPreview) {
         showTab('qr');
     } else {
         showTab('qr');
@@ -123,6 +127,11 @@ document.addEventListener('DOMContentLoaded', function() {
             if (this.name === 'export_format') {
                 handleFormatChange(this.value);
             }
+            
+            // Handle color mask changes
+            if (this.name === 'color_mask') {
+                handleColorMaskChange(this.value);
+            }
         });
     });
     
@@ -149,6 +158,26 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
+    // Handle color mask change to show/hide custom color options
+    function handleColorMaskChange(colorMask) {
+        const customColors = document.getElementById('custom-colors');
+        const gradientColors = document.getElementById('gradient-colors');
+        const useGradientCheckbox = document.getElementById('use_gradient');
+        
+        if (colorMask === 'custom') {
+            // Show custom color options
+            if (customColors) customColors.style.display = 'block';
+            
+            // Show gradient colors if gradient is enabled
+            if (useGradientCheckbox && useGradientCheckbox.checked) {
+                if (gradientColors) gradientColors.style.display = 'block';
+            }
+        } else {
+            // Hide custom color options
+            if (customColors) customColors.style.display = 'none';
+        }
+    }
+    
     // Initialize format state
     const selectedFormat = document.querySelector('input[name="export_format"]:checked');
     if (selectedFormat) {
@@ -158,10 +187,49 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize radio button styles
     updateRadioStyles();
     
+    // Add gradient checkbox listener
+    const useGradientCheckbox = document.getElementById('use_gradient');
+    if (useGradientCheckbox) {
+        useGradientCheckbox.addEventListener('change', function() {
+            const gradientColors = document.getElementById('gradient-colors');
+            if (gradientColors) {
+                gradientColors.style.display = this.checked ? 'block' : 'none';
+            }
+        });
+    }
+    
+    // Initialize color mask state
+    const selectedColorMask = document.querySelector('input[name="color_mask"]:checked');
+    if (selectedColorMask) {
+        handleColorMaskChange(selectedColorMask.value);
+    }
+    
+    // Add SVG analysis functionality
+    addSVGAnalysisFeature();
+    
     // Add form validation
     const forms = document.querySelectorAll('form');
     forms.forEach(form => {
         form.addEventListener('submit', function(e) {
+            // Special validation for SVG form
+            if (form.id === 'svg-form') {
+                const svgFile = form.querySelector('#svg_file');
+                const svgText = form.querySelector('#svg_text');
+                
+                if (!svgFile.files.length && !svgText.value.trim()) {
+                    e.preventDefault();
+                    alert('Please upload an SVG file or paste SVG content');
+                    return;
+                }
+                
+                if (svgText.value.trim() && !svgText.value.includes('<svg')) {
+                    e.preventDefault();
+                    alert('Please provide valid SVG content');
+                    return;
+                }
+            }
+            
+            // General validation for required fields
             const requiredFields = form.querySelectorAll('input[required]');
             let isValid = true;
             
@@ -181,3 +249,190 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+function addSVGAnalysisFeature() {
+    // Add a button to analyze SVG colors when an SVG QR code is generated
+    const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.type === 'childList') {
+                // Check if an SVG preview was added
+                const svgFrame = document.querySelector('.svg-frame');
+                if (svgFrame && !document.querySelector('.svg-analyze-btn')) {
+                    addSVGAnalyzeButton();
+                }
+            }
+        });
+    });
+    
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
+}
+
+function addSVGAnalyzeButton() {
+    const qrActions = document.querySelector('.qr-actions');
+    if (qrActions && !document.querySelector('.svg-analyze-btn')) {
+        const analyzeBtn = document.createElement('button');
+        analyzeBtn.className = 'svg-analyze-btn new-btn';
+        analyzeBtn.textContent = '🎨 Analyze Colors';
+        analyzeBtn.onclick = analyzeSVGColors;
+        qrActions.appendChild(analyzeBtn);
+    }
+}
+
+async function analyzeSVGColors() {
+    try {
+        const svgFrame = document.querySelector('.svg-frame');
+        if (!svgFrame) {
+            alert('No SVG QR code found to analyze');
+            return;
+        }
+        
+        // Get SVG content from the frame
+        const svgDoc = svgFrame.contentDocument || svgFrame.contentWindow.document;
+        const svgElement = svgDoc.querySelector('svg');
+        
+        if (!svgElement) {
+            alert('Could not access SVG content');
+            return;
+        }
+        
+        const svgContent = svgElement.outerHTML;
+        
+        // Send to analysis endpoint
+        const response = await fetch('/analyze-svg-colors', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ svg_content: svgContent })
+        });
+        
+        const result = await response.json();
+        
+        if (result.error) {
+            alert('Error analyzing SVG: ' + result.error);
+            return;
+        }
+        
+        // Show analysis results and populate color picker
+        showSVGAnalysisResults(result);
+        
+    } catch (error) {
+        console.error('Error analyzing SVG:', error);
+        alert('Error analyzing SVG colors: ' + error.message);
+    }
+}
+
+function showSVGAnalysisResults(result) {
+    const { analysis, color_suggestions } = result;
+    
+    // Create analysis display
+    let analysisHTML = `
+        <div class="svg-analysis-results" style="margin-top: 20px; padding: 15px; background: rgba(102, 126, 234, 0.1); border-radius: 10px;">
+            <h4>SVG Color Analysis</h4>
+            <p><strong>Total shapes:</strong> ${analysis.total_shapes}</p>
+            <p><strong>Unique colors:</strong> ${analysis.color_summary.unique_colors.length}</p>
+            
+            <div style="margin-top: 10px;">
+                <strong>Colors found:</strong>
+                <div style="display: flex; gap: 10px; margin-top: 5px; flex-wrap: wrap;">
+    `;
+    
+    analysis.color_summary.unique_colors.forEach(color => {
+        if (color && color.startsWith('#')) {
+            analysisHTML += `
+                <div style="display: flex; align-items: center; gap: 5px;">
+                    <div style="width: 20px; height: 20px; background: ${color}; border: 1px solid #ccc; border-radius: 3px;"></div>
+                    <span style="font-size: 12px;">${color}</span>
+                    <button onclick="useColorInPicker('${color}')" style="font-size: 10px; padding: 2px 6px;">Use</button>
+                </div>
+            `;
+        }
+    });
+    
+    analysisHTML += `
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Add or update analysis display
+    const existingAnalysis = document.querySelector('.svg-analysis-results');
+    if (existingAnalysis) {
+        existingAnalysis.outerHTML = analysisHTML;
+    } else {
+        const qrPreview = document.querySelector('.qr-preview');
+        if (qrPreview) {
+            qrPreview.insertAdjacentHTML('beforeend', analysisHTML);
+        }
+    }
+    
+    // Pre-populate color picker if available
+    if (color_suggestions.foreground !== '#000000') {
+        const fgInput = document.getElementById('foreground_color');
+        if (fgInput) fgInput.value = color_suggestions.foreground;
+    }
+    
+    if (color_suggestions.background !== '#ffffff') {
+        const bgInput = document.getElementById('background_color');
+        if (bgInput) bgInput.value = color_suggestions.background;
+    }
+}
+
+function copyColor(color) {
+    // Create temporary input to copy color
+    const tempInput = document.createElement('input');
+    tempInput.value = color;
+    document.body.appendChild(tempInput);
+    tempInput.select();
+    
+    try {
+        document.execCommand('copy');
+        
+        // Visual feedback
+        const copyBtn = event.target;
+        const originalText = copyBtn.textContent;
+        copyBtn.textContent = '✓';
+        copyBtn.style.background = '#28a745';
+        
+        setTimeout(() => {
+            copyBtn.textContent = originalText;
+            copyBtn.style.background = '#667eea';
+        }, 1500);
+    } catch (err) {
+        console.error('Failed to copy color: ', err);
+    }
+    
+    document.body.removeChild(tempInput);
+}
+
+function useColorInPicker(color) {
+    // Check which input to populate based on current context
+    const customColorsDiv = document.getElementById('custom-colors');
+    if (customColorsDiv && customColorsDiv.style.display !== 'none') {
+        const fgInput = document.getElementById('foreground_color');
+        if (fgInput) {
+            fgInput.value = color;
+            // Trigger change event
+            fgInput.dispatchEvent(new Event('change'));
+        }
+    } else {
+        // Switch to custom colors mode and set the color
+        const customRadio = document.querySelector('input[name="color_mask"][value="custom"]');
+        if (customRadio) {
+            customRadio.checked = true;
+            customRadio.dispatchEvent(new Event('change'));
+            
+            // Wait a bit for the UI to update, then set color
+            setTimeout(() => {
+                const fgInput = document.getElementById('foreground_color');
+                if (fgInput) {
+                    fgInput.value = color;
+                    fgInput.dispatchEvent(new Event('change'));
+                }
+            }, 100);
+        }
+    }
+}

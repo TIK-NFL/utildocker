@@ -16,7 +16,7 @@ from PIL import Image
 # Add src directory to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
-from utils import QRCodeGenerator, URLShortener
+from utils import QRCodeGenerator, URLShortener, SVGColorValidator
 
 app = Flask(__name__, 
             template_folder='src/templates',
@@ -37,6 +37,7 @@ logger = logging.getLogger(__name__)
 # Initialize utility classes
 qr_generator = QRCodeGenerator()
 url_shortener = URLShortener()
+svg_validator = SVGColorValidator()
 
 # Create temp directory for QR previews
 TEMP_DIR = os.path.join(tempfile.gettempdir(), 'qr_previews')
@@ -123,10 +124,29 @@ def generate_qr():
         module_drawer = request.form.get('module_drawer', 'square')
         color_mask = request.form.get('color_mask', 'solid')
         
+        # Get custom color options
+        foreground_color = request.form.get('foreground_color')
+        background_color = request.form.get('background_color')
+        gradient_start = request.form.get('gradient_start')
+        gradient_end = request.form.get('gradient_end')
+        use_gradient = request.form.get('use_gradient') == 'on'
+        
+        # Only use gradient colors if custom mode and gradient is enabled
+        if color_mask == 'custom' and not use_gradient:
+            gradient_start = None
+            gradient_end = None
+        
         if export_format == 'svg':
             logger.info(f"Generating QR code - Format: {export_format} (styling options not available for SVG)")
         else:
-            logger.info(f"Generating QR code - Format: {export_format}, Style: {module_drawer}, Color: {color_mask}")
+            if color_mask == 'custom':
+                color_info = f"custom (fg: {foreground_color}, bg: {background_color}"
+                if use_gradient:
+                    color_info += f", gradient: {gradient_start} to {gradient_end}"
+                color_info += ")"
+                logger.info(f"Generating QR code - Format: {export_format}, Style: {module_drawer}, Color: {color_info}")
+            else:
+                logger.info(f"Generating QR code - Format: {export_format}, Style: {module_drawer}, Color: {color_mask}")
         
         # Generate QR code
         buf, mimetype, filename = qr_generator.generate_qr_code(
@@ -134,7 +154,11 @@ def generate_qr():
             export_format=export_format,
             module_drawer=module_drawer,
             color_mask=color_mask,
-            logo_image=logo_image
+            logo_image=logo_image,
+            foreground_color=foreground_color,
+            background_color=background_color,
+            gradient_start=gradient_start,
+            gradient_end=gradient_end
         )
         
         # Save QR code for preview using file storage (not session)
@@ -211,6 +235,70 @@ def download_qr():
         as_attachment=True,
         download_name=qr_preview['filename']
     )
+
+
+@app.route('/check-svg', methods=['POST'])
+def check_svg():
+    """Check SVG file based on svg_checker.py functionality."""
+    try:
+        svg_content = None
+        
+        # Get SVG content from either file upload or text input
+        if 'svg_file' in request.files and request.files['svg_file'].filename != '':
+            svg_file = request.files['svg_file']
+            svg_content = svg_file.read().decode('utf-8')
+        elif request.form.get('svg_text'):
+            svg_content = request.form.get('svg_text')
+        
+        if not svg_content:
+            flash('Please provide an SVG file or paste SVG content', 'error')
+            return render_template('index.html')
+        
+        # Get check options
+        check_red = request.form.get('check_red') == 'on'
+        check_width = request.form.get('check_width') == 'on'
+        check_opacity = request.form.get('check_opacity') == 'on'
+        
+        # Analyze SVG
+        analysis = svg_validator.validate_svg_colors(svg_content)
+        color_suggestions = svg_validator.extract_colors_for_picker(svg_content)
+        
+        logger.info(f"SVG analysis completed: {analysis['total_shapes']} shapes, {len(analysis['color_summary']['unique_colors'])} colors")
+        
+        return render_template('index.html', 
+                             svg_analysis=analysis,
+                             color_suggestions=color_suggestions,
+                             check_red=check_red,
+                             check_width=check_width,
+                             check_opacity=check_opacity,
+                             show_svg=True)
+        
+    except Exception as e:
+        logger.error(f"Error checking SVG: {str(e)}")
+        flash(f'Error analyzing SVG: {str(e)}', 'error')
+        return render_template('index.html')
+
+
+@app.route('/analyze-svg-colors', methods=['POST'])
+def analyze_svg_colors():
+    """Analyze colors in SVG content."""
+    try:
+        data = request.get_json()
+        if not data or 'svg_content' not in data:
+            return {'error': 'No SVG content provided'}, 400
+        
+        svg_content = data['svg_content']
+        analysis = svg_validator.validate_svg_colors(svg_content)
+        color_suggestions = svg_validator.extract_colors_for_picker(svg_content)
+        
+        return {
+            'analysis': analysis,
+            'color_suggestions': color_suggestions
+        }
+        
+    except Exception as e:
+        logger.error(f"Error analyzing SVG colors: {str(e)}")
+        return {'error': f'Error analyzing SVG: {str(e)}'}, 500
 
 
 @app.route('/shorten-url', methods=['POST'])

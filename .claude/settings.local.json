@@ -20,7 +20,9 @@
       "Bash(-w \"\\nHTTP Status: %{http_code}\\n\")",
       "Bash(pkill:*)",
       "Bash(find:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(pip3 install:*)",
+      "Bash(rg:*)"
     ],
     "deny": []
   }

@@ -13,6 +13,7 @@
             <nav>
                 <button id="qr-tab" class="tab-button active" onclick="showTab('qr')">QR Code Generator</button>
                 <button id="url-tab" class="tab-button" onclick="showTab('url')">URL Shortener</button>
+                <button id="svg-tab" class="tab-button" onclick="showTab('svg')">SVG Color Checker</button>
             </nav>
         </header>
 
@@ -84,6 +85,34 @@
                             <label><input type="radio" name="color_mask" value="solid" checked> Solid</label>
                             <label><input type="radio" name="color_mask" value="radial"> Radial Gradient</label>
                             <label><input type="radio" name="color_mask" value="square"> Square Gradient</label>
+                            <label><input type="radio" name="color_mask" value="custom"> Custom Colors</label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group" id="custom-colors" style="display: none;">
+                        <h3>Custom Colors</h3>
+                        <div class="color-picker-group">
+                            <div class="color-input">
+                                <label for="foreground_color">Foreground Color:</label>
+                                <input type="color" id="foreground_color" name="foreground_color" value="#000000">
+                            </div>
+                            <div class="color-input">
+                                <label for="background_color">Background Color:</label>
+                                <input type="color" id="background_color" name="background_color" value="#ffffff">
+                            </div>
+                        </div>
+                        <div class="color-picker-group" id="gradient-colors" style="display: none;">
+                            <div class="color-input">
+                                <label for="gradient_start">Gradient Start:</label>
+                                <input type="color" id="gradient_start" name="gradient_start" value="#000000">
+                            </div>
+                            <div class="color-input">
+                                <label for="gradient_end">Gradient End:</label>
+                                <input type="color" id="gradient_end" name="gradient_end" value="#0066ff">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label><input type="checkbox" id="use_gradient" name="use_gradient"> Use Gradient</label>
                         </div>
                     </div>
                     
@@ -153,6 +182,166 @@
                         <input type="text" value="{{ short_url }}" readonly id="short-url-input">
                         <button onclick="copyToClipboard('short-url-input')" class="copy-btn">Copy</button>
                     </div>
+                </div>
+                {% endif %}
+            </section>
+
+            <!-- SVG Color Checker Section -->
+            <section id="svg-section" class="tool-section">
+                <h2>SVG Color Checker</h2>
+                <div class="info-box">
+                    <h3>🎨 About SVG Color Checker</h3>
+                    <p>This tool analyzes SVG files to check their colors, stroke widths, and other properties. It's based on the svg_checker.py functionality.</p>
+                    <p><strong>Features:</strong></p>
+                    <ul>
+                        <li>Extract all colors used in SVG shapes</li>
+                        <li>Check stroke widths and opacity values</li>
+                        <li>Identify shape types and their properties</li>
+                        <li>Get color suggestions for QR code generation</li>
+                        <li>Validate SVG compliance with specific color requirements</li>
+                    </ul>
+                </div>
+                
+                <form method="post" action="/check-svg" enctype="multipart/form-data" class="form-container" id="svg-form">
+                    <div class="form-group">
+                        <label for="svg_file">Upload SVG File:</label>
+                        <input type="file" id="svg_file" name="svg_file" accept=".svg,image/svg+xml" required>
+                        <small>Select an SVG file to analyze its colors and properties</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="svg_text">Or Paste SVG Content:</label>
+                        <textarea id="svg_text" name="svg_text" rows="10" placeholder="<svg>...</svg>" style="width: 100%; font-family: monospace; font-size: 12px;"></textarea>
+                        <small>Alternatively, paste SVG XML content directly</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <h3>Check Options</h3>
+                        <label><input type="checkbox" name="check_red" checked> Check for 100% red strokes</label>
+                        <label><input type="checkbox" name="check_width" checked> Check for 1mm stroke width</label>
+                        <label><input type="checkbox" name="check_opacity" checked> Check for full opacity</label>
+                    </div>
+                    
+                    <button type="submit" class="submit-btn">Analyze SVG</button>
+                </form>
+                
+                {% if svg_analysis %}
+                <div class="svg-analysis-results">
+                    <h3>Analysis Results</h3>
+                    
+                    <div class="result-summary">
+                        <p><strong>Total shapes found:</strong> {{ svg_analysis.total_shapes }}</p>
+                        <p><strong>Unique colors:</strong> {{ svg_analysis.color_summary.unique_colors|length }}</p>
+                        
+                        {% if svg_analysis.color_summary.has_gradients %}
+                        <p class="warning">⚠️ Gradients detected in SVG</p>
+                        {% endif %}
+                        
+                        {% if svg_analysis.compliance.total_with_stroke > 0 %}
+                        <div class="compliance-summary">
+                            <h4>SVG Compliance Check</h4>
+                            <p><strong>Shapes with red strokes:</strong> {{ svg_analysis.compliance.red_strokes }} / {{ svg_analysis.compliance.total_with_stroke }}</p>
+                            <p><strong>Shapes with 1mm stroke width:</strong> {{ svg_analysis.compliance.correct_width }} / {{ svg_analysis.total_shapes }}</p>
+                            <p><strong>Shapes with full opacity:</strong> {{ svg_analysis.compliance.correct_opacity }} / {{ svg_analysis.total_shapes }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="color-display">
+                        <h4>Colors Found</h4>
+                        <div class="color-grid">
+                            {% for color in svg_analysis.color_summary.unique_colors %}
+                            <div class="color-item">
+                                <div class="color-swatch" style="background-color: {{ color }}"></div>
+                                <span>{{ color }}</span>
+                                <button onclick="copyColor('{{ color }}')" class="small-btn">Copy</button>
+                                <button onclick="useColorInPicker('{{ color }}')" class="small-btn">Use in QR</button>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <div class="shape-details">
+                        <h4>Shape Details</h4>
+                        <div class="shape-list">
+                            {% for shape in svg_analysis.shapes %}
+                            <div class="shape-item">
+                                <h5>{{ shape.tag }} ({{ shape.id }})</h5>
+                                <table class="shape-properties">
+                                    <tr>
+                                        <td>Stroke:</td>
+                                        <td>
+                                            {% if shape.stroke.color %}
+                                            <span class="color-display-inline" style="background-color: {{ shape.stroke.color }}"></span>
+                                            {{ shape.stroke.color }}
+                                            {% if shape.stroke.color == 'red' or shape.stroke.color == '#ff0000' %}
+                                            <span class="status-ok">✓</span>
+                                            {% elif check_red %}
+                                            <span class="status-warning">⚠️ Should be red</span>
+                                            {% endif %}
+                                            {% else %}
+                                            None
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>Fill:</td>
+                                        <td>
+                                            {% if shape.fill.color %}
+                                            <span class="color-display-inline" style="background-color: {{ shape.fill.color }}"></span>
+                                            {{ shape.fill.color }}
+                                            {% else %}
+                                            None
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>Stroke Width:</td>
+                                        <td>
+                                            {{ shape.stroke_width or 'Not set' }}
+                                            {% if shape.stroke_width == '1mm' %}
+                                            <span class="status-ok">✓</span>
+                                            {% elif check_width and shape.stroke_width %}
+                                            <span class="status-warning">⚠️ Should be 1mm</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>Stroke Opacity:</td>
+                                        <td>
+                                            {{ shape.stroke_opacity }}
+                                            {% if shape.stroke_opacity == '1' %}
+                                            <span class="status-ok">✓</span>
+                                            {% elif check_opacity %}
+                                            <span class="status-warning">⚠️ Should be 1</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    {% if color_suggestions %}
+                    <div class="color-suggestions">
+                        <h4>Suggested Colors for QR Generator</h4>
+                        <div class="suggestion-grid">
+                            <div class="suggestion-item">
+                                <label>Foreground:</label>
+                                <span class="color-display-inline" style="background-color: {{ color_suggestions.foreground }}"></span>
+                                {{ color_suggestions.foreground }}
+                                <button onclick="useColorInPicker('{{ color_suggestions.foreground }}')" class="small-btn">Use</button>
+                            </div>
+                            <div class="suggestion-item">
+                                <label>Background:</label>
+                                <span class="color-display-inline" style="background-color: {{ color_suggestions.background }}"></span>
+                                {{ color_suggestions.background }}
+                                <button onclick="useColorInPicker('{{ color_suggestions.background }}')" class="small-btn">Use</button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
                 </div>
                 {% endif %}
             </section>

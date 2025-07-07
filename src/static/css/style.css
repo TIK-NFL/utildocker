@@ -447,6 +447,235 @@ nav {
     font-weight: 500;
 }
 
+/* Color picker styles */
+.color-picker-group {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+}
+
+.color-input {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 150px;
+}
+
+.color-input label {
+    font-weight: 500;
+    color: #555;
+    margin-bottom: 0;
+}
+
+.color-input input[type="color"] {
+    width: 60px;
+    height: 40px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    cursor: pointer;
+    padding: 0;
+    transition: border-color 0.3s ease;
+}
+
+.color-input input[type="color"]:hover {
+    border-color: #667eea;
+}
+
+.color-input input[type="color"]:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+#custom-colors {
+    background: rgba(102, 126, 234, 0.05);
+    border: 2px solid rgba(102, 126, 234, 0.2);
+    border-radius: 10px;
+    padding: 20px;
+    margin-top: 15px;
+}
+
+#custom-colors h3 {
+    color: #667eea;
+    margin-bottom: 15px;
+}
+
+/* SVG Checker Styles */
+.svg-analysis-results {
+    margin-top: 30px;
+    padding: 25px;
+    background: rgba(102, 126, 234, 0.05);
+    border: 2px solid rgba(102, 126, 234, 0.2);
+    border-radius: 15px;
+}
+
+.svg-analysis-results h3 {
+    color: #667eea;
+    margin-bottom: 20px;
+}
+
+.result-summary {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+}
+
+.result-summary p {
+    margin-bottom: 10px;
+    font-size: 16px;
+}
+
+.result-summary .warning {
+    color: #ff9800;
+    font-weight: 500;
+}
+
+.color-display {
+    margin-bottom: 30px;
+}
+
+.color-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.color-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.color-swatch {
+    width: 30px;
+    height: 30px;
+    border: 2px solid #ddd;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+
+.small-btn {
+    padding: 4px 8px;
+    font-size: 12px;
+    background: #667eea;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.small-btn:hover {
+    background: #5a6fd8;
+    transform: translateY(-1px);
+}
+
+.shape-details {
+    margin-top: 30px;
+}
+
+.shape-list {
+    display: grid;
+    gap: 20px;
+    margin-top: 15px;
+}
+
+.shape-item {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.shape-item h5 {
+    color: #667eea;
+    margin-bottom: 15px;
+}
+
+.shape-properties {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.shape-properties td {
+    padding: 8px;
+    border-bottom: 1px solid #eee;
+}
+
+.shape-properties td:first-child {
+    font-weight: 500;
+    width: 120px;
+    color: #666;
+}
+
+.color-display-inline {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 1px solid #ccc;
+    border-radius: 2px;
+    vertical-align: middle;
+    margin-right: 5px;
+}
+
+.status-ok {
+    color: #4caf50;
+    font-weight: 500;
+}
+
+.status-warning {
+    color: #ff9800;
+    font-size: 12px;
+}
+
+.color-suggestions {
+    margin-top: 30px;
+    padding: 20px;
+    background: white;
+    border-radius: 10px;
+}
+
+.suggestion-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-top: 15px;
+}
+
+.suggestion-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.suggestion-item label {
+    font-weight: 500;
+    color: #666;
+}
+
+textarea {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: border-color 0.3s ease;
+    resize: vertical;
+}
+
+textarea:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
 @media (max-width: 768px) {
     .container {
         padding: 10px;
